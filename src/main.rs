@@ -1,13 +1,37 @@
 use bindings::Windows::Win32::Foundation::*;
+use bindings::Windows::Win32::Graphics::Gdi::*;
 use bindings::Windows::Win32::System::LibraryLoader::*;
 use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 
 extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     match message {
+        // WM_CLOSE => {
+        // Calls DestroyWindow by default
+        // }
+
+        // Called after window is destroyed
         WM_DESTROY => {
+            // Posts WM_QUIT to the message queue
             unsafe { PostQuitMessage(0) };
             LRESULT::default()
         }
+
+        WM_SIZE => LRESULT::default(),
+
+        WM_PAINT => unsafe {
+            let mut paint_info: PAINTSTRUCT = Default::default();
+            let dc = BeginPaint(window, &mut paint_info);
+            PatBlt(
+                dc,
+                paint_info.rcPaint.left,
+                paint_info.rcPaint.top,
+                paint_info.rcPaint.right - paint_info.rcPaint.left,
+                paint_info.rcPaint.bottom - paint_info.rcPaint.top,
+                BLACKNESS,
+            );
+            EndPaint(window, &paint_info);
+            LRESULT::default()
+        },
         _ => unsafe { DefWindowProcA(window, message, wparam, lparam) },
     }
 }
