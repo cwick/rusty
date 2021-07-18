@@ -7,7 +7,7 @@ fn main() {
         Windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA,
             AdjustWindowRect, CreateWindowExA, DefWindowProcA, DispatchMessageA, GetWindowLongA,
-            GetWindowLongPtrA, LoadCursorW, PeekMessageA, PostQuitMessage, RegisterClassExA,
+            GetWindowLongPtrA, LoadCursorW, PeekMessageA, GetMessageA, PostQuitMessage, RegisterClassExA,
             SetWindowLongA, SetWindowLongPtrA, ShowWindow, TranslateMessage, CREATESTRUCTA,
             CW_USEDEFAULT, IDC_ARROW, MSG, WM_CREATE, WM_DESTROY, WM_KEYDOWN, WM_KEYUP, WM_PAINT,
             WM_SIZE, WM_QUIT, WNDCLASSEXA, WNDCLASS_STYLES,

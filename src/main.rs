@@ -19,16 +19,21 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
         WM_SIZE => LRESULT::default(),
 
         WM_PAINT => unsafe {
+            static mut OPERATION: ROP_CODE = BLACKNESS;
+            if OPERATION == BLACKNESS {
+                OPERATION = WHITENESS;
+            } else {
+                OPERATION = BLACKNESS;
+            }
             let mut paint_info: PAINTSTRUCT = Default::default();
             let dc = BeginPaint(window, &mut paint_info);
-            PatBlt(
-                dc,
-                paint_info.rcPaint.left,
-                paint_info.rcPaint.top,
-                paint_info.rcPaint.right - paint_info.rcPaint.left,
-                paint_info.rcPaint.bottom - paint_info.rcPaint.top,
-                BLACKNESS,
-            );
+            let RECT {
+                top,
+                bottom,
+                left,
+                right,
+            } = paint_info.rcPaint;
+            PatBlt(dc, left, top, right - left, bottom - top, OPERATION);
             EndPaint(window, &paint_info);
             LRESULT::default()
         },
@@ -73,15 +78,13 @@ fn main() -> windows::Result<()> {
     loop {
         let mut message = MSG::default();
 
-        if unsafe { PeekMessageA(&mut message, None, 0, 0, PM_REMOVE) }.into() {
+        if unsafe { GetMessageA(&mut message, None, 0, 0) }.into() {
             unsafe {
                 TranslateMessage(&message);
                 DispatchMessageA(&message);
             }
-
-            if message.message == WM_QUIT {
-                break;
-            }
+        } else {
+            break;
         }
     }
 
