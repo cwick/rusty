@@ -13,18 +13,22 @@ struct Win32Bitmap {
 }
 
 impl Win32Bitmap {
-    fn new() -> Win32Bitmap {
+    pub fn new() -> Win32Bitmap {
         let width = 800_usize;
         let height = 600_usize;
         let bytes_per_pixel = 4_u8;
 
         Win32Bitmap {
-            data: vec![0x00ff0000_u32; width * height * bytes_per_pixel as usize],
+            data: vec![0x00000000_u32; width * height],
             width,
             height,
             bytes_per_pixel,
             bitmap_info: Win32Bitmap::create_bitmap_info(width, height, bytes_per_pixel),
         }
+    }
+
+    pub fn set_pixel(&mut self, x: usize, y: usize, value: u32) {
+        self.data[y * self.width + x] = value;
     }
 
     fn create_bitmap_info(width: usize, height: usize, bytes_per_pixel: u8) -> BITMAPINFO {
@@ -82,9 +86,45 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
             let client_width = window_rect.right;
             let client_height = window_rect.bottom;
 
-            for (i, el) in bitmap.data.iter_mut().enumerate() {
-                *el = i as u32;
+            // Upper left
+            const RED: u32 = 0x00ff0000;
+            const GREEN: u32 = 0x0000ff00;
+            const BLUE: u32 = 0x000000ff;
+
+            for x in 0..10 {
+                bitmap.set_pixel(x, 0, RED);
             }
+            for y in 0..10 {
+                bitmap.set_pixel(0, y, RED);
+            }
+            bitmap.set_pixel(0, 0, GREEN);
+
+            // Lower left
+            for x in 0..10 {
+                bitmap.set_pixel(x, bitmap.height - 1, RED);
+            }
+            for y in 0..10 {
+                bitmap.set_pixel(0, bitmap.height - y - 1, RED);
+            }
+            bitmap.set_pixel(0, bitmap.height - 1, GREEN);
+
+            // Lower right
+            for x in 0..10 {
+                bitmap.set_pixel(bitmap.width - x - 1, bitmap.height - 1, RED);
+            }
+            for y in 0..10 {
+                bitmap.set_pixel(bitmap.width - 1, bitmap.height - y - 1, RED);
+            }
+            bitmap.set_pixel(bitmap.width - 1, bitmap.height - 1, GREEN);
+
+            // Upper right
+            for x in 0..10 {
+                bitmap.set_pixel(bitmap.width - 1 - x, 0, RED);
+            }
+            for y in 0..10 {
+                bitmap.set_pixel(bitmap.width - 1, y, RED);
+            }
+            bitmap.set_pixel(bitmap.width - 1, 0, GREEN);
 
             unsafe {
                 StretchDIBits(
