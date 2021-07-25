@@ -8,12 +8,12 @@ fn main() {
         Windows::Win32::System::WindowsProgramming::INFINITE,
         Windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA,
-            AdjustWindowRect, CreateWindowExA, DefWindowProcA, DispatchMessageA, GetWindowLongA,
+            AdjustWindowRect, CreateWindowExA, DefWindowProcA, DispatchMessageA,
             GetWindowLongPtrA, LoadCursorW, PeekMessageA, GetMessageA, PostQuitMessage, RegisterClassExA,
-            SetWindowLongA, SetWindowLongPtrA, ShowWindow, TranslateMessage,
-            GetClientRect, CREATESTRUCTA,
+            SetWindowLongA, ShowWindow, TranslateMessage,
+            GetClientRect, SetWindowLongPtrA, CREATESTRUCTA,
             CW_USEDEFAULT, IDC_ARROW, MSG, WM_CREATE, WM_DESTROY, WM_KEYDOWN, WM_KEYUP, WM_PAINT,
-            WM_SIZE, WM_QUIT, WNDCLASSEXA, WNDCLASS_STYLES,
+            WM_SIZE, WM_QUIT, WNDCLASSEXA, WNDCLASS_STYLES
         },
     };
 }

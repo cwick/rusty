@@ -3,13 +3,29 @@ use bindings::Windows::Win32::Graphics::Gdi::*;
 use bindings::Windows::Win32::System::LibraryLoader::*;
 use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 
+struct Win32Bitmap {
+    hello: u32,
+}
+impl Win32Bitmap {
+    fn new() -> Win32Bitmap {
+        Win32Bitmap { hello: 123 }
+    }
+}
+
 extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     match message {
         // WM_CLOSE => {
         // Calls DestroyWindow by default
         // }
+        WM_CREATE => {
+            let create_info = unsafe { &*(lparam.0 as *const CREATESTRUCTA) };
+            let bitmap = create_info.lpCreateParams as *const Win32Bitmap;
+            unsafe {
+                SetWindowLongPtrA(window, GWLP_USERDATA, bitmap as isize);
+            }
 
-        // WM_CREATE => LRESULT::default(),
+            LRESULT::default()
+        }
 
         // Called after window is destroyed
         WM_DESTROY => {
@@ -20,6 +36,10 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
 
         // WM_SIZE => LRESULT::default(),
         WM_PAINT => {
+            unsafe {
+                let bitmap = &*(GetWindowLongPtrA(window, GWLP_USERDATA) as *const Win32Bitmap);
+                println!("{}", bitmap.hello);
+            }
             let bytes_per_pixel = 4;
             let mut paint_info: PAINTSTRUCT = Default::default();
             let device_context = unsafe { BeginPaint(window, &mut paint_info) };
@@ -50,7 +70,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
             };
 
             unsafe {
-                let result = StretchDIBits(
+                StretchDIBits(
                     device_context,
                     0,
                     0,
@@ -76,37 +96,10 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
 
 fn main() -> windows::Result<()> {
     let instance = unsafe { GetModuleHandleA(None) };
+    let mut bitmap = Win32Bitmap::new();
 
-    let window_class = WNDCLASSEXA {
-        cbSize: std::mem::size_of::<WNDCLASSEXA>() as u32,
-        style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
-        lpfnWndProc: Some(wndproc),
-        hInstance: instance,
-        hCursor: unsafe { LoadCursorW(None, IDC_ARROW) },
-        lpszClassName: PSTR(b"RustWindowClass\0".as_ptr() as _),
-        ..Default::default()
-    };
-
-    unsafe {
-        RegisterClassExA(&window_class);
-
-        let hwnd = CreateWindowExA(
-            Default::default(),
-            "RustWindowClass",
-            "Hello Windows",
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            800,
-            600,
-            None, // no parent window
-            None, // no menus
-            instance,
-            &mut 0 as *mut _ as _,
-        );
-
-        ShowWindow(hwnd, SW_SHOW)
-    };
+    register_window_class(instance);
+    create_and_show_window(instance, &mut bitmap);
 
     loop {
         let mut message = MSG::default();
@@ -122,4 +115,41 @@ fn main() -> windows::Result<()> {
     }
 
     Ok(())
+}
+
+fn register_window_class(instance: HINSTANCE) {
+    let window_class = WNDCLASSEXA {
+        cbSize: std::mem::size_of::<WNDCLASSEXA>() as u32,
+        style: CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+        lpfnWndProc: Some(wndproc),
+        hInstance: instance,
+        hCursor: unsafe { LoadCursorW(None, IDC_ARROW) },
+        lpszClassName: PSTR(b"RustWindowClass\0".as_ptr() as _),
+        ..Default::default()
+    };
+
+    unsafe {
+        RegisterClassExA(&window_class);
+    }
+}
+
+fn create_and_show_window(instance: HINSTANCE, bitmap: &mut Win32Bitmap) {
+    unsafe {
+        let hwnd = CreateWindowExA(
+            Default::default(),
+            "RustWindowClass",
+            "Hello Windows",
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            800,
+            600,
+            None, // no parent window
+            None, // no menus
+            instance,
+            bitmap as *mut _ as _,
+        );
+
+        ShowWindow(hwnd, SW_SHOW)
+    };
 }
