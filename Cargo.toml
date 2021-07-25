@@ -6,8 +6,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-windows = "0.17.2"
 bindings = { path = "bindings" }
+windows = "0.17.2"
 
 [profile.release]
 opt-level = 3

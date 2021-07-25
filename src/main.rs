@@ -72,7 +72,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
         // WM_SIZE => LRESULT::default(),
         WM_PAINT => {
             let bitmap =
-                unsafe { &*(GetWindowLongPtrA(window, GWLP_USERDATA) as *const Win32Bitmap) };
+                unsafe { &mut *(GetWindowLongPtrA(window, GWLP_USERDATA) as *mut Win32Bitmap) };
 
             let mut paint_info: PAINTSTRUCT = Default::default();
             let device_context = unsafe { BeginPaint(window, &mut paint_info) };
@@ -81,6 +81,10 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
 
             let client_width = window_rect.right;
             let client_height = window_rect.bottom;
+
+            for (i, el) in bitmap.data.iter_mut().enumerate() {
+                *el = i as u32;
+            }
 
             unsafe {
                 StretchDIBits(
@@ -146,7 +150,7 @@ fn register_window_class(instance: HINSTANCE) {
     }
 }
 
-fn create_and_show_window(instance: HINSTANCE, bitmap: &mut Win32Bitmap) {
+fn create_and_show_window(instance: HINSTANCE, bitmap: &mut Win32Bitmap) -> HWND {
     unsafe {
         let hwnd = CreateWindowExA(
             Default::default(),
@@ -163,6 +167,7 @@ fn create_and_show_window(instance: HINSTANCE, bitmap: &mut Win32Bitmap) {
             bitmap as *mut _ as _,
         );
 
-        ShowWindow(hwnd, SW_SHOW)
-    };
+        ShowWindow(hwnd, SW_SHOW);
+        hwnd
+    }
 }
