@@ -7,7 +7,7 @@ fn main() {
         Windows::Win32::System::LibraryLoader::GetModuleHandleA,
         Windows::Win32::System::WindowsProgramming::INFINITE,
         Windows::Win32::UI::WindowsAndMessaging::{
-            MessageBoxA,
+            MessageBoxA, AdjustWindowRectEx,
             AdjustWindowRect, CreateWindowExA, DefWindowProcA, DispatchMessageA,
             GetWindowLongPtrA, LoadCursorW, PeekMessageA, GetMessageA, PostQuitMessage, RegisterClassExA,
             SetWindowLongA, ShowWindow, TranslateMessage,

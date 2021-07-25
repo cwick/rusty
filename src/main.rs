@@ -151,16 +151,20 @@ fn register_window_class(instance: HINSTANCE) {
 }
 
 fn create_and_show_window(instance: HINSTANCE, bitmap: &mut Win32Bitmap) -> HWND {
+    let window_style = WS_OVERLAPPEDWINDOW;
+    let (window_width, window_height) =
+        calculate_window_size(window_style, bitmap.width as i32, bitmap.height as i32);
+
     unsafe {
         let hwnd = CreateWindowExA(
             Default::default(),
             "RustWindowClass",
             "Hello Windows",
-            WS_OVERLAPPEDWINDOW,
+            window_style,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            800,
-            600,
+            window_width,
+            window_height,
             None, // no parent window
             None, // no menus
             instance,
@@ -170,4 +174,21 @@ fn create_and_show_window(instance: HINSTANCE, bitmap: &mut Win32Bitmap) -> HWND
         ShowWindow(hwnd, SW_SHOW);
         hwnd
     }
+}
+
+fn calculate_window_size(style: WINDOW_STYLE, client_width: i32, client_height: i32) -> (i32, i32) {
+    let mut rect = RECT {
+        left: 0,
+        right: client_width,
+        top: 0,
+        bottom: client_height,
+    };
+
+    unsafe {
+        AdjustWindowRectEx(&mut rect, style, false, Default::default());
+    }
+
+    let window_width = rect.right - rect.left;
+    let window_height = rect.bottom - rect.top;
+    (window_width, window_height)
 }
