@@ -3,12 +3,47 @@ use bindings::Windows::Win32::Graphics::Gdi::*;
 use bindings::Windows::Win32::System::LibraryLoader::*;
 use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 
+type Win32BitmapData = Vec<u32>;
 struct Win32Bitmap {
-    hello: u32,
+    data: Win32BitmapData,
+    width: usize,
+    height: usize,
+    bytes_per_pixel: u8,
+    bitmap_info: BITMAPINFO,
 }
+
 impl Win32Bitmap {
     fn new() -> Win32Bitmap {
-        Win32Bitmap { hello: 123 }
+        let width = 800_usize;
+        let height = 600_usize;
+        let bytes_per_pixel = 4_u8;
+
+        Win32Bitmap {
+            data: vec![0x00ff0000_u32; width * height * bytes_per_pixel as usize],
+            width,
+            height,
+            bytes_per_pixel,
+            bitmap_info: Win32Bitmap::create_bitmap_info(width, height, bytes_per_pixel),
+        }
+    }
+
+    fn create_bitmap_info(width: usize, height: usize, bytes_per_pixel: u8) -> BITMAPINFO {
+        BITMAPINFO {
+            bmiHeader: BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: width as i32,
+                biHeight: -(height as i32),
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB as u32,
+                biSizeImage: (width * height * bytes_per_pixel as usize) as u32,
+                biXPelsPerMeter: 0,
+                biYPelsPerMeter: 0,
+                biClrUsed: 0,
+                biClrImportant: 0,
+            },
+            ..Default::default()
+        }
     }
 }
 
@@ -36,52 +71,30 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
 
         // WM_SIZE => LRESULT::default(),
         WM_PAINT => {
-            unsafe {
-                let bitmap = &*(GetWindowLongPtrA(window, GWLP_USERDATA) as *const Win32Bitmap);
-                println!("{}", bitmap.hello);
-            }
-            let bytes_per_pixel = 4;
+            let bitmap =
+                unsafe { &*(GetWindowLongPtrA(window, GWLP_USERDATA) as *const Win32Bitmap) };
+
             let mut paint_info: PAINTSTRUCT = Default::default();
             let device_context = unsafe { BeginPaint(window, &mut paint_info) };
             let mut window_rect = RECT::default();
             unsafe { GetClientRect(window, &mut window_rect) };
 
-            let width = window_rect.right;
-            let height = window_rect.bottom;
-
-            // 0x00RRGGBB
-            // TODO: allocate only once
-            let back_buffer = vec![0x00ff0000_u32; (width * height * bytes_per_pixel) as usize];
-            let bitmap_info = BITMAPINFO {
-                bmiHeader: BITMAPINFOHEADER {
-                    biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-                    biWidth: width,
-                    biHeight: -height,
-                    biPlanes: 1,
-                    biBitCount: 32,
-                    biCompression: BI_RGB as u32,
-                    biSizeImage: (width * height * bytes_per_pixel) as u32,
-                    biXPelsPerMeter: 0,
-                    biYPelsPerMeter: 0,
-                    biClrUsed: 0,
-                    biClrImportant: 0,
-                },
-                ..Default::default()
-            };
+            let client_width = window_rect.right;
+            let client_height = window_rect.bottom;
 
             unsafe {
                 StretchDIBits(
                     device_context,
                     0,
                     0,
-                    width,
-                    height,
+                    client_width,
+                    client_height,
                     0,
                     0,
-                    width,
-                    height,
-                    back_buffer.as_ptr() as *const std::ffi::c_void,
-                    &bitmap_info,
+                    bitmap.width as i32,
+                    bitmap.height as i32,
+                    bitmap.data.as_ptr() as *const std::ffi::c_void,
+                    &bitmap.bitmap_info,
                     DIB_RGB_COLORS,
                     SRCCOPY,
                 );
