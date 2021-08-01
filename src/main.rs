@@ -1,6 +1,9 @@
 use bindings::Windows::Win32::Foundation::*;
 use bindings::Windows::Win32::Graphics::Gdi::*;
 use bindings::Windows::Win32::System::LibraryLoader::*;
+use bindings::Windows::Win32::System::Performance::{
+    QueryPerformanceCounter, QueryPerformanceFrequency,
+};
 use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 
 type Win32BitmapData = Vec<u32>;
@@ -10,6 +13,31 @@ struct Win32Bitmap {
     height: usize,
     bytes_per_pixel: u8,
     bitmap_info: BITMAPINFO,
+}
+
+macro_rules! benchmark {
+    ($context:literal, $($e:tt)+) => {
+        let mut start: i64 = 0;
+        let mut frequency: i64 = 0;
+        #[allow(unused_unsafe)]
+        unsafe{
+            QueryPerformanceCounter(&mut start);
+            // TODO: cache this
+            QueryPerformanceFrequency(&mut frequency);
+        }
+        $($e)*
+
+        let mut end: i64 = 0;
+        #[allow(unused_unsafe)]
+        unsafe{ QueryPerformanceCounter(&mut end); }
+
+        // TODO: This takes 0.5 ms. Draw to screen instead?
+        println!(
+            "{}: {} ms",
+            $context,
+            (1000 * (end - start)) as f64 / frequency as f64
+        );
+    };
 }
 
 impl Win32Bitmap {
@@ -75,6 +103,7 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
 
         // WM_SIZE => LRESULT::default(),
         WM_PAINT => {
+            // TODO: Measure how long a paint takes.
             let bitmap =
                 unsafe { &mut *(GetWindowLongPtrA(window, GWLP_USERDATA) as *mut Win32Bitmap) };
 
@@ -127,21 +156,23 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
             bitmap.set_pixel(bitmap.width - 1, 0, GREEN);
 
             unsafe {
-                StretchDIBits(
-                    device_context,
-                    0,
-                    0,
-                    client_width,
-                    client_height,
-                    0,
-                    0,
-                    bitmap.width as i32,
-                    bitmap.height as i32,
-                    bitmap.data.as_ptr() as *const std::ffi::c_void,
-                    &bitmap.bitmap_info,
-                    DIB_RGB_COLORS,
-                    SRCCOPY,
-                );
+                benchmark! {"StretchDIBits",
+                    StretchDIBits(
+                        device_context,
+                        0,
+                        0,
+                        client_width,
+                        client_height,
+                        0,
+                        0,
+                        bitmap.width as i32,
+                        bitmap.height as i32,
+                        bitmap.data.as_ptr() as *const std::ffi::c_void,
+                        &bitmap.bitmap_info,
+                        DIB_RGB_COLORS,
+                        SRCCOPY,
+                    );
+                };
                 EndPaint(window, &paint_info);
             }
 
@@ -162,9 +193,11 @@ fn main() -> windows::Result<()> {
         let mut message = MSG::default();
 
         if unsafe { GetMessageA(&mut message, None, 0, 0) }.into() {
-            unsafe {
-                TranslateMessage(&message);
-                DispatchMessageA(&message);
+            benchmark! {"Main loop",
+                unsafe {
+                    TranslateMessage(&message);
+                    DispatchMessageA(&message);
+                }
             }
         } else {
             break;

@@ -5,6 +5,7 @@ fn main() {
             DeleteDC,  BI_RGB},
         Windows::Win32::Foundation::{HINSTANCE, PSTR, RECT, HWND, WPARAM, LPARAM, LRESULT},
         Windows::Win32::System::LibraryLoader::GetModuleHandleA,
+        Windows::Win32::System::Performance::{QueryPerformanceCounter,QueryPerformanceFrequency},
         Windows::Win32::System::WindowsProgramming::INFINITE,
         Windows::Win32::UI::WindowsAndMessaging::{
             MessageBoxA, AdjustWindowRectEx,
